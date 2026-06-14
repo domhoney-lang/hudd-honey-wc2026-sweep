@@ -44,7 +44,7 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
   };
 
   return (
-    <div className={`participant-card stagger-fade-in ${isEliminated ? 'eliminated-card' : ''}`} style={style}>
+    <div className={`participant-card stagger-fade-in ${isEliminated ? 'eliminated-card' : ''}`} style={{ ...style, '--card-color': color, '--card-color-glow': `${color}4D` }}>
       <div className="card-header">
         {!useFallback ? (
           <img 
