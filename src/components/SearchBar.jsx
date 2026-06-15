@@ -3,13 +3,24 @@ import React from 'react';
 export default function SearchBar({ searchTerm, onSearchChange, sortBy, onSortChange, globalFlip, onFlipToggle }) {
   return (
     <div className="controls-container">
-      <input
-        type="text"
-        className="search-input"
-        placeholder="Search for a participant or country..."
-        value={searchTerm}
-        onChange={(e) => onSearchChange(e.target.value)}
-      />
+      <div className="search-wrapper">
+        <input
+          type="text"
+          className="search-input"
+          placeholder="Search for a participant or country..."
+          value={searchTerm}
+          onChange={(e) => onSearchChange(e.target.value)}
+        />
+        {searchTerm && (
+          <button 
+            className="search-clear-btn" 
+            onClick={() => onSearchChange('')}
+            aria-label="Clear search"
+          >
+            ✕
+          </button>
+        )}
+      </div>
       <div className="sort-buttons">
         <button 
           className={`sort-btn ${sortBy === 'name' ? 'active' : ''}`}

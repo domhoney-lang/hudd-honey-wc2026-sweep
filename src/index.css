@@ -212,10 +212,20 @@ h1, h2, h3, h4, h5, h6, .prize-amount, .odds-badge {
   flex-wrap: wrap;
 }
 
-.search-input {
+.search-wrapper {
+  position: relative;
   width: 100%;
   max-width: 450px;
-  padding: 1rem 1.5rem;
+  transition: max-width var(--transition-bounce);
+}
+
+.search-wrapper:focus-within {
+  max-width: 500px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 1rem 3rem 1rem 1.5rem;
   font-size: 1.1rem;
   font-family: 'Inter', sans-serif;
   border: 1px solid var(--color-border);
@@ -229,10 +239,30 @@ h1, h2, h3, h4, h5, h6, .prize-amount, .odds-badge {
 }
 
 .search-input:focus {
-  max-width: 500px;
   border-color: var(--color-accent);
   background-color: rgba(255, 255, 255, 0.1);
   box-shadow: 0 0 0 4px var(--color-accent-glow), inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  transition: color var(--transition-fast);
+}
+
+.search-clear-btn:hover {
+  color: var(--color-text-main);
 }
 
 .search-input::placeholder {

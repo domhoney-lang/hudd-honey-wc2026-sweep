@@ -33,12 +33,14 @@ export default function Leaderboard({ participants, searchTerm, sortBy, fixtures
 
   return (
     <div className="leaderboard-grid">
-      {sortedParticipants.map((player, index) => {
-        const searchLower = searchTerm.toLowerCase();
-        const isMatch = searchTerm === '' || 
-                        player.name.toLowerCase().includes(searchLower) ||
-                        player.countries.some(c => c.name.toLowerCase().includes(searchLower));
-        
+      {sortedParticipants
+        .filter(player => {
+          if (!searchTerm) return true;
+          const searchLower = searchTerm.toLowerCase();
+          return player.name.toLowerCase().includes(searchLower) ||
+                 player.countries.some(c => c.name.toLowerCase().includes(searchLower));
+        })
+        .map((player, index) => {
         // Sort countries based on the current dashboard sort mode
         const sortedCountries = [...player.countries].sort((a, b) => {
            if (sortBy === 'name') {
@@ -57,7 +59,7 @@ export default function Leaderboard({ participants, searchTerm, sortBy, fixtures
         return (
           <div 
             key={player.id} 
-            className={`participant-wrapper ${!isMatch && searchTerm !== '' ? 'dimmed' : ''}`}
+            className="participant-wrapper"
             style={{ '--index': index }}
           >
             <ParticipantCard 
