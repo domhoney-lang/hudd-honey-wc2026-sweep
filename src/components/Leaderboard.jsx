@@ -2,6 +2,14 @@ import React from 'react';
 import ParticipantCard from './ParticipantCard';
 
 export default function Leaderboard({ participants, searchTerm, sortBy, fixtures, globalFlip }) {
+  const getNextMatchTime = (countryName) => {
+    if (!fixtures || fixtures.length === 0) return Infinity;
+    const teamFixtures = fixtures.filter(f => f.home_team === countryName.toLowerCase() || f.away_team === countryName.toLowerCase());
+    if (teamFixtures.length === 0) return Infinity;
+    const sortedFixtures = teamFixtures.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time));
+    return new Date(sortedFixtures[0].commence_time).getTime();
+  };
+
   const sortedParticipants = [...participants].sort((a, b) => {
     // Check if fully eliminated
     const aEliminated = a.countries.length > 0 && a.countries.every(c => c.status === 'eliminated');
@@ -24,6 +32,21 @@ export default function Leaderboard({ participants, searchTerm, sortBy, fixtures
        
        if (aBest !== bBest) {
           return aBest - bBest;
+       }
+    } else if (sortBy === 'match') {
+       // Find the earliest next match time for active teams of each participant
+       const getEarliestMatch = (p) => {
+          const activeMatchTimes = p.countries
+             .filter(c => c.status === 'active')
+             .map(c => getNextMatchTime(c.name));
+          return activeMatchTimes.length > 0 ? Math.min(...activeMatchTimes) : Infinity;
+       };
+
+       const aNext = getEarliestMatch(a);
+       const bNext = getEarliestMatch(b);
+
+       if (aNext !== bNext) {
+          return aNext - bNext;
        }
     }
 
@@ -52,6 +75,12 @@ export default function Leaderboard({ participants, searchTerm, sortBy, fixtures
               // If both have the same odds (e.g. both Infinity because they are eliminated), sort alphabetically
               if (aOdds === bOdds) return a.name.localeCompare(b.name);
               return aOdds - bOdds;
+           }
+           if (sortBy === 'match') {
+              const aMatch = a.status === 'active' ? getNextMatchTime(a.name) : Infinity;
+              const bMatch = b.status === 'active' ? getNextMatchTime(b.name) : Infinity;
+              if (aMatch === bMatch) return a.name.localeCompare(b.name);
+              return aMatch - bMatch;
            }
            return 0;
         });
