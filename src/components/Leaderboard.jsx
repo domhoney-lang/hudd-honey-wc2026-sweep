@@ -65,6 +65,7 @@ export default function Leaderboard({ participants, searchTerm, sortBy, fixtures
               countries={sortedCountries}
               fixtures={fixtures}
               globalFlip={globalFlip}
+              allParticipants={participants}
             />
           </div>
         );

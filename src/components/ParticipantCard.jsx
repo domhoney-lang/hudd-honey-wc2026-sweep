@@ -1,6 +1,59 @@
 import React, { useState, useEffect } from 'react';
 
-export default function ParticipantCard({ id, name, initials, color, countries, fixtures, style, globalFlip }) {
+const ParticipantAvatar = ({ participant, size = '48px', style = {} }) => {
+  const [imgSrc, setImgSrc] = useState(`/avatars/${participant.name.toLowerCase()}.jpg`);
+  const [useFallback, setUseFallback] = useState(false);
+
+  const handleImgError = () => {
+    if (imgSrc.endsWith('.jpg')) {
+      setImgSrc(`/avatars/${participant.name.toLowerCase()}.png`);
+    } else if (imgSrc.endsWith('.png')) {
+      setImgSrc(`/avatars/${participant.name.toLowerCase()}.jpeg`);
+    } else {
+      setUseFallback(true);
+    }
+  };
+
+  if (useFallback) {
+    return (
+      <div 
+        className="avatar" 
+        style={{ 
+          backgroundColor: participant.color, 
+          width: size, 
+          height: size, 
+          fontSize: size === '80px' ? '2rem' : '1rem', 
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          ...style
+        }}
+      >
+        {participant.initials}
+      </div>
+    );
+  }
+
+  return (
+    <img 
+      src={imgSrc} 
+      alt={participant.name} 
+      onError={handleImgError}
+      style={{ 
+        width: size, 
+        height: size, 
+        borderRadius: '50%', 
+        objectFit: 'cover', 
+        border: `2px solid ${participant.color}`,
+        flexShrink: 0,
+        ...style
+      }}
+    />
+  );
+};
+
+export default function ParticipantCard({ id, name, initials, color, countries, fixtures, style, globalFlip, allParticipants = [] }) {
   const [isFlipped, setIsFlipped] = useState(globalFlip || false);
 
   useEffect(() => {
@@ -10,21 +63,6 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
   }, [globalFlip]);
   
   const isEliminated = countries.length > 0 && countries.every(c => c.status === 'eliminated');
-  
-  // Try loading .jpg first. If it fails, the onError handler will try .png, then fallback.
-  const [imgSrc, setImgSrc] = useState(`/avatars/${name.toLowerCase()}.jpg`);
-  const [useFallback, setUseFallback] = useState(false);
-
-  const handleImgError = () => {
-    if (imgSrc.endsWith('.jpg')) {
-      setImgSrc(`/avatars/${name.toLowerCase()}.png`);
-    } else if (imgSrc.endsWith('.png')) {
-      // Also try .jpeg just in case!
-      setImgSrc(`/avatars/${name.toLowerCase()}.jpeg`);
-    } else {
-      setUseFallback(true);
-    }
-  };
 
   const decimalToFraction = (decimal) => {
     let d = Number(decimal) - 1;
@@ -91,20 +129,61 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
       activeTeamNames.includes(f.home_team) || activeTeamNames.includes(f.away_team)
     );
 
-    // Filter out games that have already started/finished
-    const upcoming = relevantFixtures.filter(f => new Date(f.commence_time) > new Date());
+    // Filter out games that finished more than 3 hours ago
+    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
+    const upcoming = relevantFixtures.filter(f => new Date(f.commence_time) > threeHoursAgo);
     
     upcoming.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time));
     return upcoming[0] || null;
+  };
+
+  const normalizeCountryName = (name) => {
+    if (!name) return '';
+    const lower = name.trim().toLowerCase();
+    if (lower === 'korea republic' || lower === 'republic of korea' || lower === 'south korea') return 'south korea';
+    if (lower === 'usa' || lower === 'united states of america') return 'united states';
+    if (lower === 'dr congo' || lower === 'democratic republic of the congo') return 'congo dr';
+    if (lower === 'cape verde') return 'cape verde islands';
+    if (lower === 'bosnia and herzegovina' || lower === 'bosnia-herzegovina') return 'bosnia & herzegovina';
+    if (lower === 'ivory coast' || lower === "cote d'ivoire") return "cote d'ivoire";
+    if (lower === 'curaçao') return 'curacao';
+    return lower;
   };
 
   const winProb = calculateWinProbability();
   const bestHope = getBestHope();
   const nextFixture = getNextFixture();
 
+  const getOpponentInfo = () => {
+    if (!nextFixture) return null;
+    // In hudd-honey, we just have home_team and away_team.
+    const isHome = activeTeamNames.includes(nextFixture.home_team);
+    const opponentTeamName = isHome ? nextFixture.away_team : nextFixture.home_team;
+    const opponentTeamNormalized = normalizeCountryName(opponentTeamName);
+    
+    let opponent = null;
+    let countryCode = null;
+    
+    if (allParticipants && allParticipants.length > 0) {
+      opponent = allParticipants.find(p => p.countries.some(c => normalizeCountryName(c.name) === opponentTeamNormalized));
+      if (opponent) {
+        countryCode = opponent.countries.find(c => normalizeCountryName(c.name) === opponentTeamNormalized)?.code;
+      }
+    }
+    
+    return { opponent, teamName: opponentTeamName, countryCode };
+  };
+
+  const opponentInfo = getOpponentInfo();
+
   const formatFixtureTime = (isoString) => {
     const matchDate = new Date(isoString);
     const now = new Date();
+
+    // If the match has started and it's within the 3 hour window, it's in progress
+    if (matchDate <= now) {
+      return `IN PROGRESS`;
+    }
 
     // Set to midnight to compare calendar days
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -119,7 +198,7 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
     if (diffDays === 1) return `TOMORROW AT ${timeStr}`;
     if (diffDays > 1) return `IN ${diffDays} DAYS AT ${timeStr}`;
     
-    // Fallback if it's somehow in the past but wasn't filtered out
+    // Fallback
     return matchDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase() + ` AT ${timeStr}`;
   };
 
@@ -134,26 +213,7 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
         {/* FRONT FACE */}
         <div className="participant-card-face participant-card-front">
           <div className="card-header">
-            {!useFallback ? (
-              <img 
-                src={imgSrc} 
-                alt={name} 
-                onError={handleImgError}
-                style={{ 
-                  width: '48px', 
-                  height: '48px', 
-                  borderRadius: '50%', 
-                  objectFit: 'cover', 
-                  border: `2px solid ${color}`,
-                  boxShadow: 'var(--shadow-sm)',
-                  flexShrink: 0
-                }}
-              />
-            ) : (
-              <div className="avatar" style={{ backgroundColor: color }}>
-                {initials}
-              </div>
-            )}
+            <ParticipantAvatar participant={{ name, initials, color }} size="48px" style={{ boxShadow: 'var(--shadow-sm)' }} />
             <h3 className="participant-name">{name}</h3>
           </div>
           <div className="countries-list">
@@ -180,19 +240,7 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
         <div className="participant-card-face participant-card-back" style={{ borderColor: color }}>
           <div className="back-content">
             <div className="avatar-large-container">
-              {!useFallback ? (
-                <img 
-                  src={imgSrc} 
-                  alt={name} 
-                  onError={handleImgError}
-                  className="avatar-large"
-                  style={{ borderColor: color, boxShadow: `0 0 20px ${color}4D` }}
-                />
-              ) : (
-                <div className="avatar-large" style={{ backgroundColor: color, boxShadow: `0 0 20px ${color}4D` }}>
-                  {initials}
-                </div>
-              )}
+              <ParticipantAvatar participant={{ name, initials, color }} size="80px" style={{ boxShadow: `0 0 20px ${color}4D`, borderWidth: '3px' }} />
             </div>
             
             <h3 className="participant-name back-name">{name}'s Portfolio</h3>
@@ -230,6 +278,28 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
                     <span style={{fontWeight: activeTeamNames.includes(nextFixture.away_team) ? '800' : '400', color: activeTeamNames.includes(nextFixture.away_team) ? 'var(--color-text-main)' : 'var(--color-text-muted)', textTransform: 'capitalize'}}>{nextFixture.away_team}</span>
                   </div>
                   <div className="fixture-time">{formatFixtureTime(nextFixture.commence_time)}</div>
+                  
+                  {opponentInfo && (
+                    <div className="up-against-container" style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'var(--color-bg-secondary)', padding: '0.75rem', borderRadius: '0.5rem', width: '100%', boxSizing: 'border-box' }}>
+                      <span className="match-label" style={{ fontSize: '0.75rem', marginBottom: '0.5rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Up Against</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        {opponentInfo.opponent ? (
+                          <ParticipantAvatar participant={opponentInfo.opponent} size="36px" />
+                        ) : (
+                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--color-bg-tertiary, #334155)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#94a3b8' }}>?</div>
+                        )}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>
+                            {opponentInfo.opponent ? opponentInfo.opponent.name : 'Unassigned'}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px', textTransform: 'capitalize' }}>
+                            {opponentInfo.countryCode && <span className={`fi fi-${opponentInfo.countryCode} flag-icon`} style={{ width: '12px', height: '12px', fontSize: '10px' }}></span>}
+                            {opponentInfo.teamName}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="fixture-box" style={{color: 'var(--color-text-muted)'}}>
