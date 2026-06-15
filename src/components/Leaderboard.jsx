@@ -1,7 +1,7 @@
 import React from 'react';
 import ParticipantCard from './ParticipantCard';
 
-export default function Leaderboard({ participants, searchTerm, sortBy }) {
+export default function Leaderboard({ participants, searchTerm, sortBy, fixtures, globalFlip }) {
   const sortedParticipants = [...participants].sort((a, b) => {
     // Check if fully eliminated
     const aEliminated = a.countries.length > 0 && a.countries.every(c => c.status === 'eliminated');
@@ -63,6 +63,8 @@ export default function Leaderboard({ participants, searchTerm, sortBy }) {
             <ParticipantCard 
               {...player} 
               countries={sortedCountries}
+              fixtures={fixtures}
+              globalFlip={globalFlip}
             />
           </div>
         );
