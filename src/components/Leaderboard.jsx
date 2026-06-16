@@ -6,7 +6,13 @@ export default function Leaderboard({ participants, searchTerm, sortBy, fixtures
     if (!fixtures || fixtures.length === 0) return Infinity;
     const teamFixtures = fixtures.filter(f => f.home_team === countryName.toLowerCase() || f.away_team === countryName.toLowerCase());
     if (teamFixtures.length === 0) return Infinity;
-    const sortedFixtures = teamFixtures.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time));
+    
+    // Filter out games that finished more than 3 hours ago to match ParticipantCard logic
+    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
+    const upcoming = teamFixtures.filter(f => new Date(f.commence_time) > threeHoursAgo);
+    
+    if (upcoming.length === 0) return Infinity;
+    const sortedFixtures = upcoming.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time));
     return new Date(sortedFixtures[0].commence_time).getTime();
   };
 
@@ -87,7 +93,7 @@ export default function Leaderboard({ participants, searchTerm, sortBy, fixtures
 
         return (
           <div 
-            key={player.id} 
+            key={`${sortBy}-${player.id}`} 
             className="participant-wrapper"
             style={{ '--index': index }}
           >
