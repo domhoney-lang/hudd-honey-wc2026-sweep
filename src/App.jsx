@@ -185,17 +185,33 @@ export default function App() {
       setStandingsError(null);
 
       try {
-        const [groupsRes, teamsRes] = await Promise.all([
-          fetch('https://worldcup26.ir/get/groups'),
-          fetch('https://worldcup26.ir/get/teams')
-        ]);
+        let groupsData, teamsData;
+        try {
+          const [groupsRes, teamsRes] = await Promise.all([
+            fetch('https://worldcup26.ir/get/groups'),
+            fetch('https://worldcup26.ir/get/teams')
+          ]);
 
-        if (!groupsRes.ok || !teamsRes.ok) {
-          throw new Error("Failed to fetch tournament standings data");
+          if (!groupsRes.ok || !teamsRes.ok) {
+            throw new Error("Failed to fetch from live API");
+          }
+
+          groupsData = await groupsRes.json();
+          teamsData = await teamsRes.json();
+        } catch (fetchErr) {
+          console.warn("Live standings fetch failed, falling back to local static data...", fetchErr);
+          const [localGroupsRes, localTeamsRes] = await Promise.all([
+            fetch('/groups.json'),
+            fetch('/teams.json')
+          ]);
+          
+          if (!localGroupsRes.ok || !localTeamsRes.ok) {
+            throw new Error("Failed to fetch fallback tournament standings data");
+          }
+          
+          groupsData = await localGroupsRes.json();
+          teamsData = await localTeamsRes.json();
         }
-
-        const groupsData = await groupsRes.json();
-        const teamsData = await teamsRes.json();
 
         const groups = groupsData.groups || [];
         const teams = teamsData.teams || [];

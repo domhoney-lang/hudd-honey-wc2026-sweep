@@ -1147,3 +1147,33 @@ h1, h2, h3, h4, h5, h6, .prize-amount, .odds-badge {
   height: 24px;
   opacity: 0.5;
 }
+
+/* Responsive Sort Buttons (Filter Strip) on Mobile */
+@media (max-width: 600px) {
+  .sort-buttons {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 0.35rem 0.5rem;
+    gap: 0.25rem;
+    border-radius: 9999px;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .sort-buttons::-webkit-scrollbar {
+    display: none; /* Hide Chrome, Safari and Opera scrollbars */
+  }
+  
+  .sort-buttons > span {
+    font-size: 0.75rem !important;
+    padding-left: 0.5rem !important;
+  }
+  
+  .sort-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+}
