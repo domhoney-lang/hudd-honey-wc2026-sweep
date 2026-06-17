@@ -227,7 +227,7 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
                 <span className="country-name">{country.name}</span>
                 {country.status === 'active' && country.price && (
                   <span className={`odds-badge slide-in ${getOddsTier(country.price)}`}>
-                    [{decimalToFraction(country.price)}]
+                    {decimalToFraction(country.price)}
                   </span>
                 )}
                 {country.status === 'eliminated' && <span className="eliminated-badge slide-in">Eliminated</span>}
