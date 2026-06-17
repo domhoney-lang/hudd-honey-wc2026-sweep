@@ -269,6 +269,21 @@ h1, h2, h3, h4, h5, h6, .prize-amount, .odds-badge {
   color: var(--color-text-muted);
 }
 
+.filter-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border);
+}
+
 .sort-buttons {
   display: flex;
   gap: 0.5rem;
