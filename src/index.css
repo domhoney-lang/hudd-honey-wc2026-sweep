@@ -910,6 +910,12 @@ h1, h2, h3, h4, h5, h6, .prize-amount, .odds-badge {
   color: var(--color-text-main);
 }
 
+.drawer-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
 /* Standing Table Cards */
 .drawer-group-card {
   padding: 1.25rem;
