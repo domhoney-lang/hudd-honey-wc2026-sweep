@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function SearchBar({ searchTerm, onSearchChange, sortBy, onSortChange, globalFlip, onFlipToggle }) {
+export default function SearchBar({ searchTerm, onSearchChange, sortBy, onSortChange, globalFlip, onFlipToggle, onOpenDrawer }) {
   return (
     <div className="controls-container">
       <div className="search-wrapper">
@@ -48,6 +48,13 @@ export default function SearchBar({ searchTerm, onSearchChange, sortBy, onSortCh
           style={{ color: globalFlip ? 'var(--color-primary)' : 'inherit' }}
         >
           {globalFlip ? 'Unflip Cards' : 'Flip Cards'}
+        </button>
+        <button 
+          className="sort-btn"
+          onClick={onOpenDrawer}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+        >
+          <span>🏆</span> Group Tables
         </button>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const ParticipantAvatar = ({ participant, size = '48px', style = {} }) => {
+export const ParticipantAvatar = ({ participant, size = '48px', style = {} }) => {
   const [imgSrc, setImgSrc] = useState(`/avatars/${participant.name.toLowerCase()}.jpg`);
   const [useFallback, setUseFallback] = useState(false);
 

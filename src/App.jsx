@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { initialParticipants, THE_ODDS_API_KEY } from './data';
 import PrizePool from './components/PrizePool';
 import SearchBar from './components/SearchBar';
 import Leaderboard from './components/Leaderboard';
+import GroupStandingsDrawer from './components/GroupStandingsDrawer';
 
 const normalizeCountryName = (name) => {
   if (!name) return '';
@@ -25,6 +26,11 @@ export default function App() {
   const [globalFlip, setGlobalFlip] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [rawStandings, setRawStandings] = useState(null);
+  const [standingsLoading, setStandingsLoading] = useState(false);
+  const [standingsError, setStandingsError] = useState(null);
 
   useEffect(() => {
     async function fetchOdds() {
@@ -156,6 +162,117 @@ export default function App() {
     fetchOdds();
   }, []);
 
+  useEffect(() => {
+    async function fetchStandings() {
+      const CACHE_KEY = 'standingsDataCache';
+      const CACHE_TIME_KEY = 'standingsDataTimestamp';
+      const ONE_HOUR_MS = 60 * 60 * 1000;
+
+      const cachedData = localStorage.getItem(CACHE_KEY);
+      const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
+
+      if (cachedData && cachedTime && (Date.now() - Number(cachedTime) < ONE_HOUR_MS)) {
+        try {
+          const parsed = JSON.parse(cachedData);
+          setRawStandings(parsed);
+          return;
+        } catch (e) {
+          console.error("Failed to parse cached standings data", e);
+        }
+      }
+
+      setStandingsLoading(true);
+      setStandingsError(null);
+
+      try {
+        const [groupsRes, teamsRes] = await Promise.all([
+          fetch('https://worldcup26.ir/get/groups'),
+          fetch('https://worldcup26.ir/get/teams')
+        ]);
+
+        if (!groupsRes.ok || !teamsRes.ok) {
+          throw new Error("Failed to fetch tournament standings data");
+        }
+
+        const groupsData = await groupsRes.json();
+        const teamsData = await teamsRes.json();
+
+        const groups = groupsData.groups || [];
+        const teams = teamsData.teams || [];
+
+        const standingsCombined = { groups, teams };
+        localStorage.setItem(CACHE_KEY, JSON.stringify(standingsCombined));
+        localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+
+        setRawStandings(standingsCombined);
+      } catch (err) {
+        console.error(err);
+        setStandingsError(err.message || "An error occurred fetching group standings.");
+      } finally {
+        setStandingsLoading(false);
+      }
+    }
+
+    fetchStandings();
+  }, []);
+
+  const processStandings = (groups, teams) => {
+    const teamsMap = {};
+    teams.forEach(t => {
+      teamsMap[t.id] = t;
+    });
+
+    const processedGroups = groups.map(g => {
+      const processedTeams = g.teams.map(team => {
+        const detail = teamsMap[team.team_id] || {};
+        const teamName = detail.name_en || '';
+        const isoCode = detail.iso2 ? detail.iso2.toLowerCase() : '';
+        
+        let flagCode = isoCode;
+        if (flagCode === 'eng') flagCode = 'gb-eng';
+        if (flagCode === 'sco') flagCode = 'gb-sct';
+
+        const owner = participants.find(p => 
+          p.countries.some(c => normalizeCountryName(c.name) === normalizeCountryName(teamName))
+        );
+
+        return {
+          ...team,
+          name: teamName,
+          flagCode: flagCode,
+          owner: owner ? { name: owner.name, initials: owner.initials, color: owner.color } : null
+        };
+      });
+
+      processedTeams.sort((a, b) => {
+        const ptsA = Number(a.pts) || 0;
+        const ptsB = Number(b.pts) || 0;
+        if (ptsB !== ptsA) return ptsB - ptsA;
+
+        const gdA = Number(a.gd) || 0;
+        const gdB = Number(b.gd) || 0;
+        if (gdB !== gdA) return gdB - gdA;
+
+        const gfA = Number(a.gf) || 0;
+        const gfB = Number(b.gf) || 0;
+        return gfB - gfA;
+      });
+
+      return {
+        ...g,
+        teams: processedTeams
+      };
+    });
+
+    processedGroups.sort((a, b) => a.name.localeCompare(b.name));
+    return processedGroups;
+  };
+
+  const standingsData = useMemo(() => {
+    if (!rawStandings) return [];
+    return processStandings(rawStandings.groups, rawStandings.teams);
+  }, [rawStandings, participants]);
+
   return (
     <div className="container">
       <header className="app-header">
@@ -175,6 +292,7 @@ export default function App() {
           onSortChange={setSortBy}
           globalFlip={globalFlip}
           onFlipToggle={() => setGlobalFlip(!globalFlip)}
+          onOpenDrawer={() => setIsDrawerOpen(true)}
         />
         {loading ? (
            <div style={{ textAlign: 'center', padding: '2rem', fontSize: '1.1rem', color: 'var(--color-text-muted)' }}>
@@ -190,6 +308,17 @@ export default function App() {
           />
         )}
       </main>
+      <GroupStandingsDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        loading={standingsLoading}
+        error={standingsError}
+        groups={standingsData}
+        onParticipantClick={(participantName) => {
+          setSearchTerm(participantName);
+          setIsDrawerOpen(false);
+        }}
+      />
     </div>
   );
 }
