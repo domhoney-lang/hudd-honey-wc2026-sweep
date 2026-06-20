@@ -2,6 +2,8 @@
 // Get a free key at: https://the-odds-api.com/
 export const THE_ODDS_API_KEY = 'c356a56d070a2b22a64b6a5f88bc2b45';
 
+export const TEAM_STATUS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTGLc9jAL0SWzOCtrc0hDSWapV2UDYdmHjP86M1DObyZbklO-FTkn33IcUg9Ufq-WHSCxL87PHcirji/pub?gid=179469367&single=true&output=csv';
+
 export const initialParticipants = [
   { id: 1, name: 'Etta', initials: 'ET', color: '#10b981', countries: [{ name: 'Jordan', code: 'jo', status: 'active' }, { name: 'South Africa', code: 'za', status: 'active' }, { name: 'Congo DR', code: 'cd', status: 'active' }, { name: 'Senegal', code: 'sn', status: 'active' }, { name: 'Paraguay', code: 'py', status: 'active' }, { name: 'New Zealand', code: 'nz', status: 'active' }, { name: 'Portugal', code: 'pt', status: 'active' }, { name: 'Belgium', code: 'be', status: 'active' }] },
   { id: 2, name: 'Isobel', initials: 'IS', color: '#3b82f6', countries: [{ name: 'France', code: 'fr', status: 'active' }, { name: 'Curacao', code: 'cw', status: 'active' }, { name: 'Bosnia & Herzegovina', code: 'ba', status: 'active' }, { name: 'Uzbekistan', code: 'uz', status: 'active' }, { name: 'South Korea', code: 'kr', status: 'active' }, { name: 'Netherlands', code: 'nl', status: 'active' }, { name: 'Spain', code: 'es', status: 'active' }, { name: 'Ghana', code: 'gh', status: 'active' }] },

@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function PrizePool({ participants }) {
   // Flatten all countries with their participant owner
   const allTeams = participants.flatMap(p => 
@@ -12,7 +10,6 @@ export default function PrizePool({ participants }) {
   );
 
   const activeTeams = allTeams.filter(t => t.status === 'active');
-  const eliminatedTeams = allTeams.filter(t => t.status === 'eliminated').sort((a, b) => (b.eliminatedAt || 0) - (a.eliminatedAt || 0));
 
   let winner = null;
 
@@ -22,7 +19,7 @@ export default function PrizePool({ participants }) {
     winner = { pending: true, teams: activeTeams };
   }
 
-  const renderCandidate = (spot, label) => {
+  const renderCandidate = (spot) => {
     if (!spot) return <div className="prize-candidates"><span className="candidate-badge">TBD</span></div>;
     
     if (spot.pending) {
@@ -52,7 +49,7 @@ export default function PrizePool({ participants }) {
       <div className="prize-card winner">
         <div className="prize-title">Winner</div>
         <div className="prize-amount">£30</div>
-        {renderCandidate(winner, 'Winner')}
+        {renderCandidate(winner)}
       </div>
     </div>
   );

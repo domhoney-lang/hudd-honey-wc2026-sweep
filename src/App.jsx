@@ -1,22 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { initialParticipants, THE_ODDS_API_KEY } from './data';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { initialParticipants, TEAM_STATUS_CSV_URL, THE_ODDS_API_KEY } from './data';
+import { applyTeamStatusOverrides, normalizeCountryName, parseManualTeamStatusCsv } from './teamStatus';
 import PrizePool from './components/PrizePool';
 import SearchBar from './components/SearchBar';
 import Leaderboard from './components/Leaderboard';
 import GroupStandingsDrawer from './components/GroupStandingsDrawer';
-
-const normalizeCountryName = (name) => {
-  if (!name) return '';
-  const lower = name.trim().toLowerCase();
-  if (lower === 'korea republic' || lower === 'republic of korea' || lower === 'south korea') return 'south korea';
-  if (lower === 'usa' || lower === 'united states of america') return 'united states';
-  if (lower === 'dr congo' || lower === 'democratic republic of the congo') return 'congo dr';
-  if (lower === 'cape verde') return 'cape verde islands';
-  if (lower === 'bosnia and herzegovina' || lower === 'bosnia-herzegovina') return 'bosnia & herzegovina';
-  if (lower === 'ivory coast' || lower === "cote d'ivoire") return "cote d'ivoire";
-  if (lower === 'curaçao') return 'curacao';
-  return lower;
-};
 
 export default function App() {
   const [participants, setParticipants] = useState(initialParticipants);
@@ -34,39 +22,67 @@ export default function App() {
 
   useEffect(() => {
     async function fetchOdds() {
-      if (!THE_ODDS_API_KEY || THE_ODDS_API_KEY === 'YOUR_API_KEY_HERE') {
+      const canFetchOddsApi = THE_ODDS_API_KEY && THE_ODDS_API_KEY !== 'YOUR_API_KEY_HERE';
+      const canFetchManualStatus = Boolean(TEAM_STATUS_CSV_URL);
+
+      if (!canFetchOddsApi && !canFetchManualStatus) {
         return;
       }
 
       const CACHE_KEY = 'oddsDataCache';
       const CACHE_TIME_KEY = 'oddsDataTimestamp';
+      const STATUS_CACHE_KEY = 'manualTeamStatusCache';
+      const STATUS_CACHE_TIME_KEY = 'manualTeamStatusTimestamp';
       const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+      const ONE_HOUR_MS = 60 * 60 * 1000;
+      let currentOddsMap = null;
+      let manualStatusMap = {};
 
-      const applyOddsMap = (oddsMap) => {
-        setParticipants(prev => prev.map(p => ({
-          ...p,
-          countries: p.countries.map(c => {
-             const normalizedKey = normalizeCountryName(c.name);
-             const price = oddsMap[normalizedKey];
-             
-             if (price === undefined) {
-                return { ...c, status: 'eliminated', eliminatedAt: c.eliminatedAt || Date.now(), price: null };
-             } else {
-                return { ...c, status: 'active', eliminatedAt: null, price: price };
-             }
-          })
-        })));
+      const applyTeamData = () => {
+        setParticipants(prev => applyTeamStatusOverrides(prev, currentOddsMap, manualStatusMap));
       };
+
+      const fetchManualStatusMap = async () => {
+        if (!canFetchManualStatus) return null;
+
+        try {
+          const response = await fetch(TEAM_STATUS_CSV_URL);
+          if (!response.ok) {
+            throw new Error("Failed to fetch manual team status CSV");
+          }
+
+          const csvText = await response.text();
+          return parseManualTeamStatusCsv(csvText, initialParticipants);
+        } catch (err) {
+          console.warn("Failed to load manual team status CSV; falling back to odds/API status.", err);
+          return null;
+        }
+      };
+
+      // Check LocalStorage Cache for Manual Team Status
+      let hasFreshManualStatus = !canFetchManualStatus;
+      const cachedManualStatus = localStorage.getItem(STATUS_CACHE_KEY);
+      const cachedManualStatusTime = localStorage.getItem(STATUS_CACHE_TIME_KEY);
+
+      if (cachedManualStatus && cachedManualStatusTime && (Date.now() - Number(cachedManualStatusTime) < ONE_HOUR_MS)) {
+        try {
+          manualStatusMap = JSON.parse(cachedManualStatus);
+          applyTeamData();
+          hasFreshManualStatus = true;
+        } catch (e) {
+          console.error("Failed to parse cached manual team status data", e);
+        }
+      }
 
       // Check LocalStorage Cache for Outrights
       const cachedData = localStorage.getItem(CACHE_KEY);
       const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
-      let hasFreshOdds = false;
+      let hasFreshOdds = !canFetchOddsApi;
 
-      if (cachedData && cachedTime && (Date.now() - Number(cachedTime) < ONE_DAY_MS)) {
+      if (canFetchOddsApi && cachedData && cachedTime && (Date.now() - Number(cachedTime) < ONE_DAY_MS)) {
         try {
-          const oddsMap = JSON.parse(cachedData);
-          applyOddsMap(oddsMap);
+          currentOddsMap = JSON.parse(cachedData);
+          applyTeamData();
           hasFreshOdds = true;
         } catch(e) {
           console.error("Failed to parse cached odds data", e);
@@ -76,11 +92,11 @@ export default function App() {
       // Check LocalStorage Cache for Fixtures
       const FIXTURES_CACHE_KEY = 'fixturesDataCache';
       const FIXTURES_CACHE_TIME_KEY = 'fixturesDataTimestamp';
-      let hasFreshFixtures = false;
+      let hasFreshFixtures = !canFetchOddsApi;
       const cachedFixtures = localStorage.getItem(FIXTURES_CACHE_KEY);
       const cachedFixturesTime = localStorage.getItem(FIXTURES_CACHE_TIME_KEY);
       
-      if (cachedFixtures && cachedFixturesTime && (Date.now() - Number(cachedFixturesTime) < ONE_DAY_MS)) {
+      if (canFetchOddsApi && cachedFixtures && cachedFixturesTime && (Date.now() - Number(cachedFixturesTime) < ONE_DAY_MS)) {
         try {
            const parsedFixtures = JSON.parse(cachedFixtures);
            setFixtures(parsedFixtures);
@@ -90,12 +106,22 @@ export default function App() {
         }
       }
 
-      if (hasFreshOdds && hasFreshFixtures) return;
+      if (hasFreshOdds && hasFreshFixtures && hasFreshManualStatus) return;
 
       setLoading(true);
       setError(null);
       
       try {
+        if (!hasFreshManualStatus) {
+          const fetchedManualStatusMap = await fetchManualStatusMap();
+          if (fetchedManualStatusMap) {
+            manualStatusMap = fetchedManualStatusMap;
+            localStorage.setItem(STATUS_CACHE_KEY, JSON.stringify(manualStatusMap));
+            localStorage.setItem(STATUS_CACHE_TIME_KEY, Date.now().toString());
+            applyTeamData();
+          }
+        }
+
         if (!hasFreshOdds) {
           const url = `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup_winner/odds/?apiKey=${THE_ODDS_API_KEY}&regions=uk&markets=outrights&oddsFormat=decimal`;
           const response = await fetch(url);
@@ -126,12 +152,13 @@ export default function App() {
           outrightMarket.outcomes.forEach(outcome => {
              oddsMap[normalizeCountryName(outcome.name)] = outcome.price;
           });
+          currentOddsMap = oddsMap;
 
           // Save to cache for 24 hours
           localStorage.setItem(CACHE_KEY, JSON.stringify(oddsMap));
           localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
 
-          applyOddsMap(oddsMap);
+          applyTeamData();
         }
 
         // Fetch fixtures if needed
@@ -206,7 +233,7 @@ export default function App() {
           ]);
           
           if (!localGroupsRes.ok || !localTeamsRes.ok) {
-            throw new Error("Failed to fetch fallback tournament standings data");
+            throw new Error("Failed to fetch fallback tournament standings data", { cause: fetchErr });
           }
           
           groupsData = await localGroupsRes.json();
@@ -232,7 +259,7 @@ export default function App() {
     fetchStandings();
   }, []);
 
-  const processStandings = (groups, teams) => {
+  const processStandings = useCallback((groups, teams) => {
     const teamsMap = {};
     teams.forEach(t => {
       teamsMap[t.id] = t;
@@ -282,12 +309,12 @@ export default function App() {
 
     processedGroups.sort((a, b) => a.name.localeCompare(b.name));
     return processedGroups;
-  };
+  }, [participants]);
 
   const standingsData = useMemo(() => {
     if (!rawStandings) return [];
     return processStandings(rawStandings.groups, rawStandings.teams);
-  }, [rawStandings, participants]);
+  }, [rawStandings, processStandings]);
 
   return (
     <div className="container">

@@ -1,14 +1,16 @@
-import React from 'react';
+import { useState } from 'react';
 import ParticipantCard from './ParticipantCard';
 
 export default function Leaderboard({ participants, searchTerm, sortBy, fixtures, globalFlip }) {
+  const [now] = useState(() => Date.now());
+
   const getNextMatchTime = (countryName) => {
     if (!fixtures || fixtures.length === 0) return Infinity;
     const teamFixtures = fixtures.filter(f => f.home_team === countryName.toLowerCase() || f.away_team === countryName.toLowerCase());
     if (teamFixtures.length === 0) return Infinity;
     
     // Filter out games that finished more than 3 hours ago to match ParticipantCard logic
-    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
+    const threeHoursAgo = new Date(now - 3 * 60 * 60 * 1000);
     const upcoming = teamFixtures.filter(f => new Date(f.commence_time) > threeHoursAgo);
     
     if (upcoming.length === 0) return Infinity;
@@ -93,7 +95,7 @@ export default function Leaderboard({ participants, searchTerm, sortBy, fixtures
 
         return (
           <div 
-            key={`${sortBy}-${player.id}`} 
+            key={`${sortBy}-${globalFlip}-${player.id}`} 
             className="participant-wrapper"
             style={{ '--index': index }}
           >

@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function SearchBar({ searchTerm, onSearchChange, sortBy, onSortChange, globalFlip, onFlipToggle, onOpenDrawer }) {
   return (
     <div className="controls-container">

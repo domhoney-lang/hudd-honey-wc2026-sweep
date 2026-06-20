@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { normalizeCountryName } from '../teamStatus';
 
 export const ParticipantAvatar = ({ participant, size = '48px', style = {} }) => {
   const [imgSrc, setImgSrc] = useState(`/avatars/${participant.name.toLowerCase()}.jpg`);
@@ -53,14 +54,9 @@ export const ParticipantAvatar = ({ participant, size = '48px', style = {} }) =>
   );
 };
 
-export default function ParticipantCard({ id, name, initials, color, countries, fixtures, style, globalFlip, allParticipants = [] }) {
+export default function ParticipantCard({ name, initials, color, countries, fixtures, style, globalFlip, allParticipants = [] }) {
   const [isFlipped, setIsFlipped] = useState(globalFlip || false);
-
-  useEffect(() => {
-    if (globalFlip !== undefined) {
-      setIsFlipped(globalFlip);
-    }
-  }, [globalFlip]);
+  const [now] = useState(() => Date.now());
   
   const isEliminated = countries.length > 0 && countries.every(c => c.status === 'eliminated');
 
@@ -130,24 +126,11 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
     );
 
     // Filter out games that finished more than 3 hours ago
-    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
+    const threeHoursAgo = new Date(now - 3 * 60 * 60 * 1000);
     const upcoming = relevantFixtures.filter(f => new Date(f.commence_time) > threeHoursAgo);
     
     upcoming.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time));
     return upcoming[0] || null;
-  };
-
-  const normalizeCountryName = (name) => {
-    if (!name) return '';
-    const lower = name.trim().toLowerCase();
-    if (lower === 'korea republic' || lower === 'republic of korea' || lower === 'south korea') return 'south korea';
-    if (lower === 'usa' || lower === 'united states of america') return 'united states';
-    if (lower === 'dr congo' || lower === 'democratic republic of the congo') return 'congo dr';
-    if (lower === 'cape verde') return 'cape verde islands';
-    if (lower === 'bosnia and herzegovina' || lower === 'bosnia-herzegovina') return 'bosnia & herzegovina';
-    if (lower === 'ivory coast' || lower === "cote d'ivoire") return "cote d'ivoire";
-    if (lower === 'curaçao') return 'curacao';
-    return lower;
   };
 
   const winProb = calculateWinProbability();
