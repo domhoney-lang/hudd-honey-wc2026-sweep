@@ -18,7 +18,7 @@
   --color-accent-glow: rgba(59, 130, 246, 0.5);
   
   --color-eliminated-bg: rgba(0, 0, 0, 0.3);
-  --color-eliminated-text: #475569;
+  --color-eliminated-text: #94a3b8;
   
   --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   --shadow-neon: 0 0 15px var(--color-primary-glow);
@@ -604,8 +604,9 @@ h1, h2, h3, h4, h5, h6, .prize-amount, .odds-badge {
 }
 
 .country-toggle.eliminated {
-  background: transparent;
-  opacity: 0.4;
+  background: rgba(127, 29, 29, 0.18);
+  border-color: rgba(248, 113, 113, 0.22);
+  opacity: 1;
 }
 
 .flag-icon {
@@ -621,6 +622,7 @@ h1, h2, h3, h4, h5, h6, .prize-amount, .odds-badge {
 
 .country-toggle.eliminated .flag-icon {
   filter: grayscale(100%);
+  opacity: 0.75;
 }
 
 .country-name {
@@ -630,8 +632,10 @@ h1, h2, h3, h4, h5, h6, .prize-amount, .odds-badge {
 }
 
 .country-toggle.eliminated .country-name {
-  color: var(--color-eliminated-text);
+  color: #cbd5e1;
   text-decoration: line-through;
+  text-decoration-color: rgba(248, 113, 113, 0.8);
+  text-decoration-thickness: 2px;
 }
 
 .eliminated-badge {
@@ -639,10 +643,10 @@ h1, h2, h3, h4, h5, h6, .prize-amount, .odds-badge {
   font-size: 0.7rem;
   font-weight: 800;
   text-transform: uppercase;
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.1);
-  border: 1px solid rgba(248, 113, 113, 0.2);
-  padding: 0.25rem 0.5rem;
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.55);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  padding: 0.3rem 0.6rem;
   border-radius: 0.5rem;
   letter-spacing: 0.05em;
 }
