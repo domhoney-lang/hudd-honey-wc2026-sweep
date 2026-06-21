@@ -17,6 +17,7 @@ const participants = [
       { name: 'United States', code: 'us', status: 'active' },
       { name: "Cote d'Ivoire", code: 'ci', status: 'active' },
       { name: 'South Korea', code: 'kr', status: 'active' },
+      { name: 'Turkey', code: 'tr', status: 'active' },
     ],
   },
 ];
@@ -33,6 +34,7 @@ test('parses manual CSV statuses and UK eliminated dates', () => {
     'USA,ELIMINATED,20/06/2026',
     'C\u00f4te d\u2019Ivoire,active,',
     'Korea Republic,eliminated,1/7/2026',
+    'Turkey,Eliminated,20/06/2026',
   ].join('\n');
 
   const statusMap = parseManualTeamStatusCsv(csv, participants);
@@ -44,6 +46,7 @@ test('parses manual CSV statuses and UK eliminated dates', () => {
   assert.equal(statusMap["cote d'ivoire"].status, 'active');
   assert.equal(statusMap["cote d'ivoire"].eliminatedAt, null);
   assert.equal(new Date(statusMap['south korea'].eliminatedAt).getDate(), 1);
+  assert.equal(statusMap.turkey.status, 'eliminated');
 });
 
 test('manual status overrides odds-derived status while preserving odds prices', () => {
@@ -67,4 +70,13 @@ test('manual status overrides odds-derived status while preserving odds prices',
   assert.equal(countries.find(country => country.name === "Cote d'Ivoire").price, null);
   assert.equal(countries.find(country => country.name === 'South Korea').status, 'active');
   assert.equal(countries.find(country => country.name === 'South Korea').price, 34);
+});
+
+test('null odds prices are treated as missing odds', () => {
+  const merged = applyTeamStatusOverrides(participants, { turkey: null }, {}, 123);
+  const turkey = merged[0].countries.find(country => country.name === 'Turkey');
+
+  assert.equal(turkey.status, 'eliminated');
+  assert.equal(turkey.price, null);
+  assert.equal(turkey.eliminatedAt, 123);
 });

@@ -97,7 +97,7 @@ export const applyTeamStatusOverrides = (participants, oddsMap, manualStatusMap 
     ...participant,
     countries: participant.countries.map(country => {
       const countryKey = normalizeCountryName(country.name);
-      const hasOddsPrice = hasOddsMap && Object.prototype.hasOwnProperty.call(oddsMap, countryKey);
+      const hasOddsPrice = hasOddsMap && oddsMap[countryKey] !== undefined && oddsMap[countryKey] !== null;
 
       let status = country.status;
       let eliminatedAt = country.eliminatedAt || null;

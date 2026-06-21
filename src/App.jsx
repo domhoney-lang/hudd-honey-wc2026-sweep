@@ -34,7 +34,6 @@ export default function App() {
       const STATUS_CACHE_KEY = 'manualTeamStatusCache';
       const STATUS_CACHE_TIME_KEY = 'manualTeamStatusTimestamp';
       const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-      const ONE_HOUR_MS = 60 * 60 * 1000;
       let currentOddsMap = null;
       let manualStatusMap = {};
 
@@ -46,7 +45,8 @@ export default function App() {
         if (!canFetchManualStatus) return null;
 
         try {
-          const response = await fetch(TEAM_STATUS_CSV_URL);
+          const cacheBustedUrl = `${TEAM_STATUS_CSV_URL}${TEAM_STATUS_CSV_URL.includes('?') ? '&' : '?'}_=${Date.now()}`;
+          const response = await fetch(cacheBustedUrl, { cache: 'no-store' });
           if (!response.ok) {
             throw new Error("Failed to fetch manual team status CSV");
           }
@@ -59,20 +59,8 @@ export default function App() {
         }
       };
 
-      // Check LocalStorage Cache for Manual Team Status
+      // Manual status is intentionally fetched fresh on every load so sheet edits are reflected immediately.
       let hasFreshManualStatus = !canFetchManualStatus;
-      const cachedManualStatus = localStorage.getItem(STATUS_CACHE_KEY);
-      const cachedManualStatusTime = localStorage.getItem(STATUS_CACHE_TIME_KEY);
-
-      if (cachedManualStatus && cachedManualStatusTime && (Date.now() - Number(cachedManualStatusTime) < ONE_HOUR_MS)) {
-        try {
-          manualStatusMap = JSON.parse(cachedManualStatus);
-          applyTeamData();
-          hasFreshManualStatus = true;
-        } catch (e) {
-          console.error("Failed to parse cached manual team status data", e);
-        }
-      }
 
       // Check LocalStorage Cache for Outrights
       const cachedData = localStorage.getItem(CACHE_KEY);
@@ -118,6 +106,7 @@ export default function App() {
             manualStatusMap = fetchedManualStatusMap;
             localStorage.setItem(STATUS_CACHE_KEY, JSON.stringify(manualStatusMap));
             localStorage.setItem(STATUS_CACHE_TIME_KEY, Date.now().toString());
+            hasFreshManualStatus = true;
             applyTeamData();
           }
         }
